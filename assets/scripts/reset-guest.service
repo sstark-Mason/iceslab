@@ -1,0 +1,12 @@
+[Unit]
+Description=Reset Guest Account from Template
+After=systemd-user-sessions.service
+Before=sddm.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/reset-guest.sh
+RemainAfterExit=no
+
+[Install]
+WantedBy=multi-user.target
