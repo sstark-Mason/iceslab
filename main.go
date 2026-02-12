@@ -26,7 +26,7 @@ var embedded embed.FS
 
 const (
 	owner  = "sstark-mason"
-	repo   = "iceslab-config"
+	repo   = "iceslab"
 	branch = "main"
 )
 
@@ -229,6 +229,11 @@ func fetchUpdates() error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("GitHub API request failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
 	var commit GitHubCommit
 	if err := json.NewDecoder(resp.Body).Decode(&commit); err != nil {
 		return fmt.Errorf("failed to decode GitHub API response: %w", err)
@@ -236,9 +241,15 @@ func fetchUpdates() error {
 	remoteSHA := commit.SHA
 
 	localSHA, _ := os.ReadFile(".last_commit")
-	if string(localSHA) == remoteSHA {
-		log.Info().Msg("Repo is already up to date")
-		return nil
+	switch localSHA {
+	case nil:
+		// No local SHA found, treat as first run
+		log.Info().Msg("No local commit SHA found; treating as first run")
+	default:
+		if string(localSHA) == remoteSHA {
+			log.Info().Msg("Repo is already up to date (remote: " + remoteSHA + ", local: " + string(localSHA) + ")")
+			return nil
+		}
 	}
 
 	log.Info().Str("remote_sha", remoteSHA).Msg("New commit found; updating local repo state")
@@ -253,12 +264,18 @@ func fetchUpdates() error {
 		fmt.Sprintf("https://api.github.com/repos/%s/%s/tarball/%s", owner, repo, branch),
 		nil,
 	)
+	tarReq.Header.Set("User-Agent", "iceslab-config-setup-script")
 
 	tarResp, err := client.Do(tarReq)
 	if err != nil {
 		return fmt.Errorf("failed to download repo tarball: %w", err)
 	}
 	defer tarResp.Body.Close()
+
+	if tarResp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(tarResp.Body)
+		return fmt.Errorf("GitHub tarball request failed with status %d: %s", tarResp.StatusCode, string(body))
+	}
 
 	if err := extractTarGz(tarResp.Body, newDir); err != nil {
 		return fmt.Errorf("failed to extract repo tarball: %w", err)
