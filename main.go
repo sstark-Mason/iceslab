@@ -240,10 +240,15 @@ func fetchUpdates() error {
 	}
 	remoteSHA := commit.SHA
 
-	localSHA, _ := os.ReadFile(".last_commit")
+	// Read name of parent dir for local SHA
+	execPath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("failed to get executable path: %w", err)
+	}
+	parentDir := filepath.Dir(execPath)
+	localSHA := []byte(strings.TrimPrefix(filepath.Base(parentDir), "iceslab-"))
 	switch localSHA {
 	case nil:
-		// No local SHA found, treat as first run
 		log.Info().Msg("No local commit SHA found; treating as first run")
 	default:
 		if string(localSHA) == remoteSHA {
@@ -254,7 +259,7 @@ func fetchUpdates() error {
 
 	log.Info().Str("remote_sha", remoteSHA).Msg("New commit found; updating local repo state")
 
-	newDir := filepath.Join("iceslab-config-" + remoteSHA)
+	newDir := filepath.Join("iceslab-" + remoteSHA)
 	if err := os.MkdirAll(newDir, 0755); err != nil {
 		return fmt.Errorf("failed to create new directory for updated repo state: %w", err)
 	}
@@ -283,6 +288,11 @@ func fetchUpdates() error {
 
 	if err := os.WriteFile(".last_commit", []byte(remoteSHA), 0644); err != nil {
 		return fmt.Errorf("failed to write last commit SHA: %w", err)
+	}
+
+	iceslabPath := filepath.Join(newDir, "iceslab")
+	if err := os.Chmod(iceslabPath, 0755); err != nil {
+		return fmt.Errorf("failed to chmod iceslab: %w", err)
 	}
 
 	log.Info().Msg("Repo state updated successfully")
@@ -341,17 +351,14 @@ func extractTarGz(gzipStream io.Reader, dest string) error {
 }
 
 func getAssetPath() string {
-	// Check for .last_commit file to determine which directory to use
-	if data, err := os.ReadFile(".last_commit"); err == nil {
-		sha := strings.TrimSpace(string(data))
-		candidateDir := "iceslab-config-" + sha
-		if info, err := os.Stat(candidateDir); err == nil && info.IsDir() {
-			log.Debug().Str("path", candidateDir).Msg("Using asset path from last commit")
-			return candidateDir
-		}
+	// Check for local "assets" directory first
+	if _, err := os.Stat("assets"); err == nil {
+		log.Debug().Msg("Using local assets path")
+		return "assets"
 	}
+	// Fallback to embedded assets
 	log.Debug().Msg("Using embedded assets path")
-	return "assets"
+	return "embedded"
 }
 
 func main() {
@@ -386,9 +393,10 @@ func main() {
 	assetPath := getAssetPath()
 	log.Info().Str("asset_path", assetPath).Msg("Using asset path for setup")
 
-	if assetPath == "assets" {
+	if assetPath == "embedded" {
 		log.Info().Msg("Using embedded assets for setup")
-		err = dumpAssets("embedded", "assets")
+		err = dumpAssets("assets", "assets")
+		assetPath = "assets"
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to dump assets")
 			return
