@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -361,6 +362,22 @@ func getAssetPath() string {
 	return "embedded"
 }
 
+func runScript(path string) error {
+	if _, err := os.Stat(path); err == nil {
+		log.Info().Str("script", path).Msg("Running script")
+		err = os.Chmod(path, 0755)
+		if err != nil {
+			return fmt.Errorf("failed to make script executable: %w", err)
+		}
+		cmd := fmt.Sprintf("./%s", path)
+		if err := exec.Command(cmd).Run(); err != nil {
+			return fmt.Errorf("failed to run script: %w", err)
+		}
+		log.Info().Str("script", path).Msg("Script completed successfully")
+	}
+	return nil
+}
+
 func main() {
 
 	zerolog.TimeFieldFormat = time.RFC3339
@@ -423,4 +440,20 @@ func main() {
 		return
 	}
 	log.Info().Msg("Bookmarks inserted into Chromium policies.json successfully")
+
+	// Run scripts/post-install.sh
+	postInstallPath := filepath.Join(assetPath, "scripts/post-install.sh")
+	if err := runScript(postInstallPath); err != nil {
+		log.Fatal().Err(err).Msg("Failed to run post-install script")
+		return
+	}
+
+	// Run scripts/guest-template.sh
+	guestTemplatePath := filepath.Join(assetPath, "scripts/guest-template.sh")
+	if err := runScript(guestTemplatePath); err != nil {
+		log.Fatal().Err(err).Msg("Failed to run guest-template script")
+		return
+	}
+
+	log.Info().Msg("Setup completed successfully")
 }
