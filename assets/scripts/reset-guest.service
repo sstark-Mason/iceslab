@@ -8,5 +8,13 @@ Type=oneshot
 ExecStart=/usr/local/bin/reset-guest.sh
 RemainAfterExit=no
 
+[Service]
+Type=oneshot
+ExecStop=/usr/local/bin/reset-guest.sh
+RemainAfterExit=yes
+
 [Install]
 WantedBy=multi-user.target
+
+[Install]
+WantedBy=

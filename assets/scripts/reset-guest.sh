@@ -1,6 +1,9 @@
 #!/bin/bash
 GUEST_USER="guest"
-TEMPLATE_USER="guest-template"
+GUEST_HOME="/home/$GUEST_USER/"
+TEMPLATE_DIR="/opt/guest-template/"
+
+systemctl terminate-user "$GUEST_USER" 2>/dev/null
 
 # 1. Create guest user if it doesn't exist
 if ! id "$GUEST_USER" &>/dev/null; then
@@ -8,11 +11,9 @@ if ! id "$GUEST_USER" &>/dev/null; then
     passwd -d "$GUEST_USER" # Clear password for easy login
 fi
 
-# 2. Wipe current guest home and sync from template
-rm -rf /home/$GUEST_USER/*
-rm -rf /home/$GUEST_USER/.* 2>/dev/null
-cp -rT /home/$TEMPLATE_USER/ /home/$GUEST_USER/
+# 2. Wipe current guest home and sync from template with rsync
+rsync -a --delete  $TEMPLATE_DIR $GUEST_HOME
 
 # 3. Fix ownership
-chown -R $GUEST_USER:$GUEST_USER /home/$GUEST_USER
-restorecon -R /home/$GUEST_USER
+chown -R $GUEST_USER:$GUEST_USER $GUEST_HOME
+restorecon -R $GUEST_HOME
