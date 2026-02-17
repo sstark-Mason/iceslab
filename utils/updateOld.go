@@ -14,6 +14,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+type GitHubCommit struct {
+	SHA string `json:"sha"`
+}
+
 func FetchUpdates() error {
 	log.Info().Msg("Fetching latest repo state from GitHub")
 

@@ -74,19 +74,6 @@ func writeFile(path string, data []byte, perm os.FileMode) error {
 	return os.WriteFile(path, data, perm)
 }
 
-func promptForStationNumber() (string, error) {
-	var stationNum string
-	log.Info().Msg("Please enter the station number (e.g., 01, 02, etc.):")
-	_, err := fmt.Scanln(&stationNum)
-	if err != nil {
-		return "", err
-	}
-	if len(stationNum) == 1 && stationNum >= "1" && stationNum <= "9" {
-		stationNum = "0" + stationNum
-	}
-	return stationNum, nil
-}
-
 func getAssetPath() string {
 	// Check for local "assets" directory first
 	if _, err := os.Stat("assets"); err == nil {
@@ -125,27 +112,40 @@ func main() {
 
 	var err error
 
-	hash1, err := utils.HashDirectory("assets")
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to hash assets directory")
-	}
-	log.Info().Str("assets_hash", hash1).Msg("Assets directory hash")
-
-	hash2, err := utils.HashFile("iceslab")
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to hash iceslab binary")
-	}
-	log.Info().Str("embedded_hash", hash2).Msg("Iceslab binary hash")
-
-	if hash1 != hash2 {
-		log.Warn().Msg("Assets directory and embedded assets hashes do not match")
-	} else {
-		log.Info().Msg("Assets directory and embedded assets hashes match")
-	}
-
 	flagManifest := flag.Bool("manifest", false, "Generate and save manifest.yaml with current binary and assets hashes")
 	flagUpdate := flag.Bool("update", false, "Fetch latest repo state from GitHub before setup")
+	flagBuild := flag.Bool("build", false, "Build the iceslab binary from source before setup")
 	flag.Parse()
+
+	log.Info().Msgf("Running iceslab with flags: manifest=%t, update=%t, build=%t", *flagManifest, *flagUpdate, *flagBuild)
+
+	err = utils.CheckIfCorrectUser()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Exiting on user check")
+		return
+	}
+
+	if *flagBuild {
+		log.Info().Msg("Build flag provided; building iceslab binary")
+		err = utils.Build()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to build iceslab binary")
+		}
+
+		manifest, err := utils.GenerateManifest()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to generate manifest")
+		}
+		log.Info().Str("manifest", manifest.BinaryHash).Msg("Generated manifest")
+
+		err = utils.SaveManifest(manifest, "manifest.yaml")
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to save manifest")
+		}
+
+		return
+
+	}
 
 	if *flagManifest {
 		log.Info().Msg("Manifest flag provided; generating manifest")
@@ -163,10 +163,12 @@ func main() {
 
 	if *flagUpdate {
 		log.Info().Msg("Update flag provided; checking for updates")
-		err = utils.Update()
+		client := utils.NewClient("") // Limited to 60 reqs/hour without auth
+		err := client.Update()
 		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to update repo state")
+			log.Fatal().Err(err).Msg("Failed to update local repo state")
 		}
+		log.Info().Msg("Update check completed successfully")
 		return
 	}
 
@@ -181,7 +183,7 @@ func main() {
 	// 	return
 	// }
 
-	// stationNum, err := promptForStationNumber()
+	// stationNum, err := utils.PromptForStationNumber()
 	// if err != nil {
 	// 	log.Fatal().Err(err).Msg("Failed to read station number")
 	// }
