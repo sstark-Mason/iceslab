@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'assets/bookmarks/**'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -19,7 +20,7 @@ jobs:
       - name: Create zip
         run: |
           cd assets/bookmarks/
-          zip -r ../bookmarks.zip .
+          zip -r ../../bookmarks.zip .
           
       - name: Update release
         uses: softprops/action-gh-release@v2
