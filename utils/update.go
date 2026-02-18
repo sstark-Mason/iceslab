@@ -15,9 +15,10 @@ import (
 )
 
 const (
-	owner  = "sstark-mason"
-	repo   = "iceslab"
-	branch = "main"
+	owner        = "sstark-mason"
+	repo         = "iceslab"
+	branch       = "main"
+	bookmarksURL = "https://api.github.com/repos/sstark-mason/iceslab/zipball/bookmarks-latest"
 )
 
 type Client struct {

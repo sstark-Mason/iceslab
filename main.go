@@ -112,6 +112,11 @@ func main() {
 
 	var err error
 
+	if _, err := os.Stat(".git"); err == nil {
+		log.Fatal().Msg(".git directory found; exiting. Don't run this in your git repo, dumbass.")
+		os.Exit(1)
+	}
+
 	flagManifest := flag.Bool("manifest", false, "Generate and save manifest.yaml with current binary and assets hashes")
 	flagUpdate := flag.Bool("update", false, "Fetch latest repo state from GitHub before setup")
 	flagBuild := flag.Bool("build", false, "Build the iceslab binary from source before setup")
