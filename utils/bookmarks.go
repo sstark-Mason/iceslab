@@ -17,6 +17,7 @@ type Bookmark struct {
 }
 
 func (b *Bookmark) GetURL(stationNum string) (Bookmark, error) {
+	// TODO: Rewrite this function.
 	switch url := b.URL.(type) {
 	case string:
 		return Bookmark{Name: b.Name, URL: url}, nil
@@ -36,6 +37,16 @@ func (b *Bookmark) GetURL(stationNum string) (Bookmark, error) {
 			}
 		}
 	case []any:
+		// Try to index by stationNum
+		if stationInt, err := strconv.Atoi(stationNum); err == nil && stationInt > 0 {
+			index := stationInt - 1
+			if index >= 0 && index < len(url) {
+				if urlStr, ok := url[index].(string); ok {
+					return Bookmark{Name: b.Name, URL: urlStr}, nil
+				}
+			}
+		}
+
 		// Fall back to the first URL in the array if stationNum isn't found or if it's an array
 		if len(url) > 0 {
 			if urlStr, ok := url[0].(string); ok {
