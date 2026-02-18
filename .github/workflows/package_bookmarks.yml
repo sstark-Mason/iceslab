@@ -24,7 +24,7 @@ jobs:
       - name: Update release
         uses: softprops/action-gh-release@v2
         with:
-          tag: bookmarks-latest
+          tag_name: bookmarks-latest
           name: Latest bookmarks
           body: Auto-generated on ${{ github.sha }}
           files: bookmarks.zip
