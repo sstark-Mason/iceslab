@@ -1,0 +1,31 @@
+name: Package Bookmarks
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'assets/bookmarks/**'
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create zip
+        run: |
+          cd assets/bookmarks/
+          zip -r ../bookmarks.zip .
+          
+      - name: Update release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag: bookmarks-latest
+          name: Latest bookmarks
+          body: Auto-generated on ${{ github.sha }}
+          files: bookmarks.zip
+          
