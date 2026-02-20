@@ -21,6 +21,33 @@ func InstallTo(path string) error {
 	return nil
 }
 
+func InstallPackages(installPath string) error {
+	if _, err := os.Stat(installPath + ".post_install"); err == nil {
+		log.Info().Msg("Post-installation already completed; skipping package installation")
+		return nil
+	}
+
+	log.Info().Str("installPath", installPath).Msg("Installing software dependencies")
+	err := RunShellCommand("sudo chmod +x " + installPath + "assets/scripts/install_upgrade_packages.sh")
+	if err != nil {
+		return fmt.Errorf("failed to make software install script executable: %w", err)
+	}
+
+	err = RunShellCommand("sudo " + installPath + "assets/scripts/install_upgrade_packages.sh")
+	if err != nil {
+		return fmt.Errorf("failed to run software install script: %w", err)
+	}
+
+	err = os.WriteFile(installPath+".post_install", []byte("completed"), 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write post_install file: %w", err)
+	}
+
+	log.Info().Msg("Software dependencies installed successfully")
+
+	return nil
+}
+
 func SetupGuestUser(installPath string) error {
 	log.Info().Str("installPath", installPath).Msg("Setting up guest user")
 	err := RunShellCommand("sudo chmod +x " + installPath + "assets/scripts/create_guest_template.sh")
@@ -34,22 +61,6 @@ func SetupGuestUser(installPath string) error {
 	}
 
 	log.Info().Msg("Guest user setup completed successfully")
-
-	return nil
-}
-
-func InstallPackages(installPath string) error {
-	log.Info().Str("installPath", installPath).Msg("Installing software dependencies")
-	err := RunShellCommand("sudo chmod +x " + installPath + "assets/scripts/install_upgrade_packages.sh")
-	if err != nil {
-		return fmt.Errorf("failed to make software install script executable: %w", err)
-	}
-
-	err = RunShellCommand("sudo " + installPath + "assets/scripts/install_upgrade_packages.sh")
-	if err != nil {
-		return fmt.Errorf("failed to run software install script: %w", err)
-	}
-	log.Info().Msg("Software dependencies installed successfully")
 
 	return nil
 }
