@@ -1,0 +1,17 @@
+[Unit]
+Description=Guest Session Manager
+After=graphical.target
+BindsTo=user@1001.service # guest UID is 1001
+
+[Service]
+Type=oneshot
+User=guest
+ExecStart=/usr/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ 1
+ExecStartPost=/usr/bin/sudo /opt/iceslab/iceslab -u b
+
+ExecStop=/usr/bin/rsync --delete /opt/iceslab/guest-template/ /home/guest/
+ExecStop=/usr/bin/chown -R guest:guest /home/guest
+ExecStop=/usr/sbin/restorecon -R /home/guest
+
+[Install]
+WantedBy=user@1000.service

@@ -1,0 +1,14 @@
+[Unit]
+Description=Guest Session Logout Cleanup
+DefaultDependencies=no
+Before=shutdown.target reboot.target halt.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/rsync --delete /opt/iceslab/guest-template/ /home/guest/
+ExecStart=/usr/bin/chown -R guest:guest /home/guest
+ExecStart=/usr/sbin/restorecon -R /home/guest
+RemainAfterExit=no
+
+[Install]
+WantedBy=shutdown.target reboot.target halt.target

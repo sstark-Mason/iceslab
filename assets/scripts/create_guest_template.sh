@@ -12,4 +12,16 @@ useradd -m "$GUEST_USER"
 passwd -d "$GUEST_USER"
 
 # rsync guest home to template
-rsync --delete  $GUEST_HOME $TEMPLATE_DIR
+rsync --delete --recursive  $GUEST_HOME $TEMPLATE_DIR
+
+# Place guest session manager service
+cp /opt/iceslab/assets/services/guest-session-manager.service /etc/systemd/system/
+
+# Allow guest user to run the iceslab script without password
+cat <<EOF > /etc/sudoers.d/iceslab
+$GUEST_USER ALL=(root) NOPASSWD: /opt/iceslab/iceslab
+EOF
+chmod 0440 /etc/sudoers.d/iceslab
+
+systemctl daemon-reload
+systemctl enable guest-session-manager.service

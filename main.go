@@ -131,6 +131,16 @@ func main() {
 			log.Fatal().Err(err).Msg("Failed to dump assets in installPath")
 		}
 
+		err = utils.InstallPackages(installPath)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to install packages")
+		}
+
+		err = utils.SetupGuestUser(installPath)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to set up guest user")
+		}
+
 		err = utils.InsertBookmarksInPolicies(stationID)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to install bookmarks")
@@ -142,12 +152,11 @@ func main() {
 			return
 		}
 
-		err = utils.SetupGuestUser(installPath)
+		log.Info().Msg("Installation completed successfully. Rebooting system to apply changes.")
+		err = utils.RunShellCommand("sudo reboot")
 		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to set up guest user")
+			log.Error().Err(err).Msg("Failed to reboot system")
 		}
-
-		log.Info().Msg("Installation completed successfully")
 		return
 	}
 
