@@ -1,0 +1,10 @@
+[Keyboard]
+NumLock=0
+
+[Mouse]
+PointerAcceleration=-0.200
+PointerAccelerationProfile=1
+
+[Libinput]
+PointerAcceleration=-0.200
+PointerAccelerationProfile=1

@@ -4,9 +4,7 @@ import (
 	"embed"
 	_ "embed"
 	"flag"
-	"fmt"
 	"os"
-	"os/exec"
 	"time"
 
 	"iceslab/utils"
@@ -17,22 +15,6 @@ import (
 
 //go:embed all:assets
 var embedded embed.FS
-
-func runScript(path string) error {
-	if _, err := os.Stat(path); err == nil {
-		log.Info().Str("script", path).Msg("Running script")
-		err = os.Chmod(path, 0755)
-		if err != nil {
-			return fmt.Errorf("failed to make script executable: %w", err)
-		}
-		cmd := fmt.Sprintf("./%s", path)
-		if err := exec.Command(cmd).Run(); err != nil {
-			return fmt.Errorf("failed to run script: %w", err)
-		}
-		log.Info().Str("script", path).Msg("Script completed successfully")
-	}
-	return nil
-}
 
 func main() {
 
@@ -98,104 +80,76 @@ func main() {
 	case "b", "bookmarks":
 		log.Info().Msg("Updating bookmarks")
 		client := utils.NewClient("")
-		err := client.UpdateBookmarks()
+		err := client.UpdateBookmarkYamls()
 		if err != nil {
 			log.Err(err).Msg("Failed to update bookmarks")
 		}
-		err = utils.InstallBookmarks(stationID)
+		err = utils.InsertBookmarksInPolicies(stationID)
 		if err != nil {
 			log.Err(err).Msg("Failed to install bookmarks")
+		}
+		err = utils.CopyDirectoryTo("assets/etc/", "/etc/")
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to copy assets/etc/ to /etc/")
+			return
 		}
 		return
 	}
 
 	if *install {
-		log.Info().Msg("Installing to /opt/iceslab/")
+		installPath := "/opt/iceslab/"
+		log.Info().Str("installPath", installPath).Msg("Installing iceslab to path")
+
 		execPath, err := os.Executable()
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to get executable path")
 		}
-		err = utils.MoveFile(execPath, "/opt/iceslab/iceslab")
-		err = utils.DumpAssets(embedded, "assets", "/opt/iceslab/assets")
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to move binary and dump assets to /opt/iceslab/")
+
+		if execPath != installPath+"iceslab" {
+			log.Warn().Str("execPath", execPath).Msg("Executable is not running from install path; moving to /opt/iceslab/")
+			err = utils.InstallTo(installPath)
+			if err != nil {
+				log.Fatal().Err(err).Msg("Failed to install to path")
+			}
+			// Re-run the program from the new location with same flags
+			err = utils.RerunBinary(installPath+"iceslab", os.Args[1:]...)
+			os.Exit(0)
 		}
-		err = utils.InstallBookmarks(stationID)
+
+		// if _, err := os.Stat(installPath); err == nil {
+		// 	log.Error().Msg("Existing installation found at installPath; exiting")
+		// 	os.Exit(1)
+		// }
+
+		// err = utils.MoveFile(execPath, installPath+"iceslab")
+		// if err != nil {
+		// 	log.Fatal().Err(err).Msg("Failed to move binary to installPath")
+		// }
+
+		err = utils.DumpAssets(embedded, "assets", installPath+"assets")
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to dump assets in installPath")
+		}
+
+		err = utils.InsertBookmarksInPolicies(stationID)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to install bookmarks")
 		}
+
+		err = utils.CopyDirectoryTo(installPath+"assets/etc/", "/etc/")
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to copy assets/etc/ to /etc/")
+			return
+		}
+
+		err = utils.SetupGuestUser(installPath)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to set up guest user")
+		}
+
 		log.Info().Msg("Installation completed successfully")
 		return
 	}
-
-	// log.Info().Msgf("Running iceslab with flags: manifest=%t, update=%t, build=%t", *flagManifest, *flagUpdate, *flagBuild)
-
-	// if *flagBuild {
-	// 	log.Info().Msg("Build flag provided; building iceslab binary")
-	// 	err = utils.Build()
-	// 	if err != nil {
-	// 		log.Fatal().Err(err).Msg("Failed to build iceslab binary")
-	// 	}
-
-	// 	manifest, err := utils.GenerateManifest()
-	// 	if err != nil {
-	// 		log.Fatal().Err(err).Msg("Failed to generate manifest")
-	// 	}
-	// 	log.Info().Str("manifest", manifest.BinaryHash).Msg("Generated manifest")
-
-	// 	err = utils.SaveManifest(manifest, "manifest.yaml")
-	// 	if err != nil {
-	// 		log.Fatal().Err(err).Msg("Failed to save manifest")
-	// 	}
-
-	// 	return
-	// }
-
-	// if *flagManifest {
-	// 	log.Info().Msg("Manifest flag provided; generating manifest")
-	// 	manifest, err := utils.GenerateManifest()
-	// 	if err != nil {
-	// 		log.Fatal().Err(err).Msg("Failed to generate manifest")
-	// 	}
-	// 	log.Info().Str("manifest", manifest.BinaryHash).Msg("Generated manifest")
-
-	// 	err = utils.SaveManifest(manifest, "manifest.yaml")
-	// 	if err != nil {
-	// 		log.Fatal().Err(err).Msg("Failed to save manifest")
-	// 	}
-	// }
-
-	// if *flagUpdate {
-	// 	log.Info().Msg("Update flag provided; checking for updates")
-	// 	client := utils.NewClient("") // Limited to 60 reqs/hour without auth
-	// 	err := client.Update()
-	// 	if err != nil {
-	// 		log.Fatal().Err(err).Msg("Failed to update local repo state")
-	// 	}
-	// 	log.Info().Msg("Update check completed successfully")
-	// 	return
-	// }
-
-	// bookmarks, err := utils.CollectBookmarks(filepath.Join(assetPath, "bookmarks"), stationNum)
-	// if err != nil {
-	// 	log.Fatal().Err(err).Msg("Failed to collect bookmarks")
-	// 	return
-	// }
-	// log.Info().Int("count", len(bookmarks)).Msg("Collected bookmarks")
-
-	// err = utils.InsertBookmarks("firefox", filepath.Join(assetPath, "etc/firefox/policies/policies.json"), bookmarks)
-	// if err != nil {
-	// 	log.Fatal().Err(err).Msg("Failed to insert bookmarks into Firefox policies.json")
-	// 	return
-	// }
-	// log.Info().Msg("Bookmarks inserted into Firefox policies.json successfully")
-
-	// err = utils.InsertBookmarks("chromium", filepath.Join(assetPath, "etc/chromium/policies/managed/policies.json"), bookmarks)
-	// if err != nil {
-	// 	log.Fatal().Err(err).Msg("Failed to insert bookmarks into Chromium policies.json")
-	// 	return
-	// }
-	// log.Info().Msg("Bookmarks inserted into Chromium policies.json successfully")
 
 	// // Run scripts/post-install.sh
 	// postInstallPath := filepath.Join(assetPath, "scripts/post-install.sh")

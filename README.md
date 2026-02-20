@@ -2,19 +2,25 @@
 
 ## Usage
 
-Download && update:
+Download && install:
 
-`curl -O https://raw.githubusercontent.com/sstark-mason/iceslab/main/iceslab && chmod +x iceslab && ./iceslab --update && rm iceslab`
+```bash
+sudo mkdir /opt/iceslab && cd /opt/iceslab \
+&& curl -O https://raw.githubusercontent.com/sstark-mason/iceslab/main/iceslab \
+&& chmod +x iceslab && ./iceslab -i`
+```
 
 Install:
 
-`./iceslab --install`
+`./iceslab -i`
 
 Update:
 
-`./iceslab --update`
+`./iceslab -u <b, s>`
 
+Dump:
 
+`./iceslab --dump`
 
 
 

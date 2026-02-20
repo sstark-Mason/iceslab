@@ -15,7 +15,7 @@ const (
 	pathChromiumPolicies = "assets/etc/chromium/policies/managed/policies.json"
 )
 
-func InstallBookmarks(stationID string) error {
+func InsertBookmarksInPolicies(stationID string) error {
 	log.Info().Msg("Installing bookmarks")
 
 	bookmarks, err := CollectBookmarks("assets/bookmarks/", stationID)
@@ -38,7 +38,7 @@ func InstallBookmarks(stationID string) error {
 
 }
 
-func (c *Client) UpdateBookmarks() error {
+func (c *Client) UpdateBookmarkYamls() error {
 	localETagBytes, err := os.ReadFile(".etag_bookmarks")
 	localETag := ""
 	if err == nil {

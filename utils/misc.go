@@ -4,11 +4,19 @@ import (
 	"embed"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/rs/zerolog/log"
 )
+
+func RunShellCommand(command string) error {
+	cmd := exec.Command("sh", "-c", command)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
 
 func CheckIfCorrectUser() error {
 	expectedUser := "admin"
@@ -159,4 +167,63 @@ func getAssetPath() string {
 	// Fallback to embedded assets
 	log.Debug().Msg("Using embedded assets path")
 	return "embedded"
+}
+
+func RunScript(path string) error {
+	if _, err := os.Stat(path); err == nil {
+		log.Info().Str("script", path).Msg("Running script")
+		err = os.Chmod(path, 0755)
+		if err != nil {
+			return fmt.Errorf("failed to make script executable: %w", err)
+		}
+		cmd := fmt.Sprintf("./%s", path)
+		if err := exec.Command(cmd).Run(); err != nil {
+			return fmt.Errorf("failed to run script: %w", err)
+		}
+		log.Info().Str("script", path).Msg("Script completed successfully")
+	}
+	return nil
+}
+
+func RerunBinary(path string, args ...string) error {
+	if _, err := os.Stat(path); err == nil {
+		log.Info().Str("binary", path).Msg("Running binary")
+		cmd := exec.Command(path, args...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err := cmd.Start()
+		if err != nil {
+			return fmt.Errorf("failed to run binary: %w", err)
+		}
+		log.Info().Str("binary", path).Msg("Binary completed successfully")
+	}
+	return nil
+}
+
+func CopyDirectoryTo(src, dest string) error {
+	src = filepath.Clean(src)
+	dest = filepath.Clean(dest)
+
+	if strings.HasPrefix(dest, src+string(filepath.Separator)) {
+		return fmt.Errorf("destination %s is a subpath of source %s", dest, src)
+	}
+
+	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		relPath, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		destPath := filepath.Join(dest, relPath)
+		if info.IsDir() {
+			return os.MkdirAll(destPath, 0755)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return writeFile(destPath, data, 0644)
+	})
 }
