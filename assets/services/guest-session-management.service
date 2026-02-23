@@ -14,4 +14,4 @@ ExecStop=/usr/bin/chown -R guest:guest /home/guest
 ExecStop=/usr/sbin/restorecon -R /home/guest
 
 [Install]
-WantedBy=user@1000.service
+WantedBy=user@1001.service

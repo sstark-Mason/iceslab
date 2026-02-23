@@ -8,7 +8,7 @@ Type=oneshot
 User=guest
 # Mute audio in user context
 ExecStart=/usr/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ 1
-# Run iceslab as root (needs NOPASSWD sudoers entry or use separate service)
+# Run iceslab as root (needs NOPASSWD sudoers entry)
 ExecStartPost=/usr/bin/sudo /opt/iceslab/iceslab -u b
 
 [Install]

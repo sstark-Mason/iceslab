@@ -152,11 +152,12 @@ func main() {
 			return
 		}
 
-		log.Info().Msg("Installation completed successfully. Rebooting system to apply changes.")
-		err = utils.RunShellCommand("sudo reboot")
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to reboot system")
-		}
+		// log.Info().Msg("Installation completed successfully. Rebooting system to apply changes.")
+		// err = utils.RunShellCommand("sudo reboot")
+		// if err != nil {
+		// 	log.Error().Err(err).Msg("Failed to reboot system")
+		// }
+
 		return
 	}
 

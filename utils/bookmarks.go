@@ -12,27 +12,27 @@ import (
 )
 
 type Bookmark struct {
-	Name string `yaml:"name"`
-	URL  any    `yaml:"url"`
+	name string `yaml:"name"`
+	url  any    `yaml:"url"`
 }
 
 func (b *Bookmark) GetURL(stationNum string) (Bookmark, error) {
-	// TODO: Rewrite this function.
-	switch url := b.URL.(type) {
+	// TODO: Maybe rewrite this function; it feels cursed for some reason.
+	switch url := b.url.(type) {
 	case string:
-		return Bookmark{Name: b.Name, URL: url}, nil
+		return Bookmark{name: b.name, url: url}, nil
 	case map[any]any:
 		// Try lookup with stationNum as string
 		if urlVal, ok := url[stationNum]; ok {
 			if urlStr, ok := urlVal.(string); ok {
-				return Bookmark{Name: b.Name, URL: urlStr}, nil
+				return Bookmark{name: b.name, url: urlStr}, nil
 			}
 		}
 		// If not found, try parsing stationNum to int (for YAML keys like 01 parsed as 1)
 		if stationInt, err := strconv.Atoi(stationNum); err == nil {
 			if urlVal, ok := url[stationInt]; ok {
 				if urlStr, ok := urlVal.(string); ok {
-					return Bookmark{Name: b.Name, URL: urlStr}, nil
+					return Bookmark{name: b.name, url: urlStr}, nil
 				}
 			}
 		}
@@ -42,7 +42,7 @@ func (b *Bookmark) GetURL(stationNum string) (Bookmark, error) {
 			index := stationInt - 1
 			if index >= 0 && index < len(url) {
 				if urlStr, ok := url[index].(string); ok {
-					return Bookmark{Name: b.Name, URL: urlStr}, nil
+					return Bookmark{name: b.name, url: urlStr}, nil
 				}
 			}
 		}
@@ -50,11 +50,11 @@ func (b *Bookmark) GetURL(stationNum string) (Bookmark, error) {
 		// Fall back to the first URL in the array if stationNum isn't found or if it's an array
 		if len(url) > 0 {
 			if urlStr, ok := url[0].(string); ok {
-				return Bookmark{Name: b.Name, URL: urlStr}, nil
+				return Bookmark{name: b.name, url: urlStr}, nil
 			}
 		}
 	}
-	return Bookmark{}, fmt.Errorf("invalid bookmark URL format for %s", b.Name)
+	return Bookmark{}, fmt.Errorf("invalid bookmark URL format for %s", b.name)
 }
 
 func CollectBookmarks(dir string, stationNum string) ([]Bookmark, error) {
@@ -95,7 +95,7 @@ func CollectBookmarks(dir string, stationNum string) ([]Bookmark, error) {
 	}
 
 	for _, bm := range bookmarks {
-		log.Debug().Str("name", bm.Name).Str("url", fmt.Sprintf("%v", bm.URL)).Msg("Collected bookmark")
+		log.Debug().Str("name", bm.name).Str("url", fmt.Sprintf("%v", bm.url)).Msg("Collected bookmark")
 	}
 
 	return bookmarks, nil

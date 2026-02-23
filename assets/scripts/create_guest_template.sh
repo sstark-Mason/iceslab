@@ -3,6 +3,12 @@ GUEST_USER="guest"
 GUEST_HOME="/home/$GUEST_USER/"
 TEMPLATE_DIR="/opt/iceslab/guest-template/"
 
+# Check if the script is run as root
+if [ "$EUID" -ne 0 ]; then
+    echo "Please run as root"
+    exit 1
+fi
+
 # Terminate and delete guest user if it exists
 loginctl terminate-user "$GUEST_USER" 2>/dev/null
 userdel --remove "$GUEST_USER" 2>/dev/null
@@ -15,7 +21,7 @@ passwd -d "$GUEST_USER"
 rsync --delete --recursive  $GUEST_HOME $TEMPLATE_DIR
 
 # Place guest session manager service
-cp /opt/iceslab/assets/services/guest-session-management.service /etc/systemd/system/
+rsync /opt/iceslab/assets/services/guest-session-management.service /etc/systemd/system/
 
 # Allow guest user to run the iceslab script without password
 cat <<EOF > /etc/sudoers.d/iceslab
