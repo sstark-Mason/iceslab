@@ -1,17 +1,33 @@
 [Unit]
 Description=Guest Session Manager
-After=graphical.target
-BindsTo=user@1001.service # guest UID is 1001
+After=user@1001.service
+BindsTo=user@1001.service
 
 [Service]
 Type=oneshot
-User=guest
-ExecStart=/usr/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ 1
-ExecStartPost=/usr/bin/sudo /opt/iceslab/iceslab -u b
+RemainAfterExit=yes
+user=guest
 
-ExecStop=/usr/bin/rsync --delete /opt/iceslab/guest-template/ /home/guest/
-ExecStop=/usr/bin/chown -R guest:guest /home/guest
-ExecStop=/usr/sbin/restorecon -R /home/guest
+# Inject the environment required for GUI/Audio apps
+Environment="XDG_RUNTIME_DIR=/run/user/1001"
+Environment="DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1001/bus"
+Environment="HOME=/home/guest"
+
+# User config
+ExecStart=/usr/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ 1
+ExecStart=/usr/bin/kwriteconfig6 --file kdeglobals --group General --key ColorScheme "BreezeDark"
+ExecStart=/usr/bin/kwriteconfig6 --file kcminputrc --group Mouse --key PointerAcceleration "-0.200"
+ExecStart=/usr/bin/kwriteconfig6 --file kcminputrc --group Mouse --key PointerAccelerationProfile 1
+ExecStart=/usr/bin/kwriteconfig6 --file kcminputrc --group Libinput 16700 9492 Dell Computer Corp Dell Universal Receiver Mouse --key PointerAcceleration "-0.200"
+ExecStart=/usr/bin/kwriteconfig6 --file kcminputrc --group Libinput 16700 9492 Dell Computer Corp Dell Universal Receiver Mouse --key PointerAccelerationProfile 1
+
+# Update bookmarks
+ExecStartPost=+/opt/iceslab/iceslab -u b
+
+# Reset guest
+ExecStop=+/usr/bin/rsync --delete /opt/iceslab/guest-template/ /home/guest/
+ExecStop=+/usr/bin/chown -R guest:guest /home/guest
+ExecStop=+/usr/sbin/restorecon -R /home/guest
 
 [Install]
 WantedBy=user@1001.service
